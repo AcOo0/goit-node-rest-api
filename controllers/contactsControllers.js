@@ -38,6 +38,13 @@ const createContact = async (req, res, next) => {
 
 const updateContact = async (req, res, next) => {
   const { id } = req.params;
+
+  if (Object.keys(req.body).length === 0) {
+    return res
+      .status(400)
+      .json({ message: "Body must have at least one field" });
+  }
+
   const result = await contactsServices.updateContactById(id, req.body);
   if (!result) {
     throw HttpError(404);
