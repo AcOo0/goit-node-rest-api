@@ -5,14 +5,25 @@ import ctrlWrapper from "../decorators/ctrlWrapper.js";
 import HttpError from "../helpers/HttpError.js";
 
 const getAllContacts = async (req, res, next) => {
-  const result = await contactsServices.listContacts();
+  const { _id: owner } = req.user;
+  const { page = 1, limit = 10 } = req.query;
+  const skip = (page - 1) * limit;
+  const result = await contactsServices.listContacts(
+    { owner },
+    { skip, limit }
+  );
+  const total = await contactsServices.countContacts({ owner });
 
-  res.json(result);
+  res.json({
+    result,
+    total,
+  });
 };
 
 const getOneContact = async (req, res, next) => {
+  const { _id: owner } = req.user;
   const { id } = req.params;
-  const result = await contactsServices.getContactById(id);
+  const result = await contactsServices.getContactByFilter({ owner, _id: id });
   if (!result) {
     throw HttpError(404);
   }
@@ -21,8 +32,9 @@ const getOneContact = async (req, res, next) => {
 };
 
 const deleteContact = async (req, res, next) => {
+  const { _id: owner } = req.user;
   const { id } = req.params;
-  const result = await contactsServices.removeContact(id);
+  const result = await contactsServices.removeContact({ owner, _id: id });
   if (!result) {
     throw HttpError(404);
   }
@@ -31,12 +43,14 @@ const deleteContact = async (req, res, next) => {
 };
 
 const createContact = async (req, res, next) => {
-  const result = await contactsServices.addContact(req.body);
+  const { _id: owner } = req.user;
+  const result = await contactsServices.addContact({ ...req.body, owner });
 
   res.status(201).json(result);
 };
 
 const updateContact = async (req, res, next) => {
+  const { _id: owner } = req.user;
   const { id } = req.params;
 
   if (Object.keys(req.body).length === 0) {
@@ -45,7 +59,10 @@ const updateContact = async (req, res, next) => {
       .json({ message: "Body must have at least one field" });
   }
 
-  const result = await contactsServices.updateContactById(id, req.body);
+  const result = await contactsServices.updateContactByFilter(
+    { owner, _id: id },
+    req.body
+  );
   if (!result) {
     throw HttpError(404);
   }
