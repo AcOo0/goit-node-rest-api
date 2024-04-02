@@ -9,15 +9,15 @@ const getAllContacts = async (req, res, next) => {
   const { page = 1, limit = 10 } = req.query;
   const skip = (page - 1) * limit;
   const result = await contactsServices.listContacts(
-    owner
+    { owner }
     // { skip, limit }
   );
   const total = await contactsServices.countContacts({ owner });
 
-  res.json({
-    result,
+  res.json(
+    result
     // total,
-  });
+  );
 };
 
 const getOneContact = async (req, res, next) => {
