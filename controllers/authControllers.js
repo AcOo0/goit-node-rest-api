@@ -104,7 +104,7 @@ const updateAvatar = async (req, res) => {
   const newPath = path.join(avatarPath, newFileName);
   await fs.rename(oldPatch, newPath);
 
-  const avatarURL = path.join("avatar", newFileName);
+  const avatarURL = path.join("avatars", newFileName);
 
   await authServices.updateUser({ _id }, { avatarURL });
   res.status(200).json({ avatarURL });
