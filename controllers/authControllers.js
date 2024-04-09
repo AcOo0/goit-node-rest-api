@@ -1,12 +1,20 @@
+import fs from "fs/promises";
+import path from "path";
+
 import bcrypt from "bcrypt";
+import gravatar from "gravatar";
 
 import jwt from "jsonwebtoken";
+
+import Jimp from "jimp";
 
 import * as authServices from "../services/authServices.js";
 
 import ctrlWrapper from "../decorators/ctrlWrapper.js";
 
 import HttpError from "../helpers/HttpError.js";
+
+const avatarPath = path.resolve("public", "avatars");
 
 const { JWT_SECRET } = process.env;
 
@@ -19,9 +27,12 @@ const register = async (req, res) => {
 
   const hashPassword = await bcrypt.hash(password, 10);
 
+  const avatarURL = gravatar.url(email, { s: "250", d: "retro" });
+
   const newUser = await authServices.register({
     ...req.body,
     password: hashPassword,
+    avatarURL: avatarURL,
   });
 
   res.status(201).json({
@@ -77,9 +88,32 @@ const logout = async (req, res) => {
   res.status(204).json();
 };
 
+const updateAvatar = async (req, res) => {
+  if (!req.file) {
+    throw HttpError(400, "No file uploaded");
+  }
+
+  const { path: oldPatch, filename } = req.file;
+  const { _id } = req.user;
+
+  const image = await Jimp.read(oldPatch);
+  await image.cover(250, 250).writeAsync(oldPatch);
+
+  const newFileName = `${_id}_${filename}`;
+
+  const newPath = path.join(avatarPath, newFileName);
+  await fs.rename(oldPatch, newPath);
+
+  const avatarURL = path.join("avatars", newFileName);
+
+  await authServices.updateUser({ _id }, { avatarURL });
+  res.status(200).json({ avatarURL });
+};
+
 export default {
   register: ctrlWrapper(register),
   login: ctrlWrapper(login),
   getCurrent: ctrlWrapper(getCurrent),
   logout: ctrlWrapper(logout),
+  updateAvatar: ctrlWrapper(updateAvatar),
 };
